@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <title>Lab 09 Template</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: whitesmoke;
+            font-family: Lato, sans-serif;
+            color: #0D0000;
+        }
+        header {
+            padding: 6px 10%;
+        }
+        h1 {
+            display: inline-block;
+            margin-right: 20px;
+            color: #001323;
+        }
+        h2 {
+            display: inline-block;
+            color: #001323;
+        }
+        #map {
+            width: 80%;
+            height: 540px;
+            margin: 10px auto;
+        }
+        footer {
+            padding: 6px 10%;
+            width: 80%;
+        }
+        p {
+            font-size: 1em;
+            color: #001323;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Coal, Solar, and Hydroelectic Power Plants in the United States</h1>
+        <h2></h2>
+    </header>
+
+    <div id='map'></div>
+
+    <footer>
+        <p>Map authored by Chris Van Dyke</p>
+        <p align = justify>This map displays coal, hydroelectric, and solar power plants across the United States. Users can toggle individual layers on and off to inpect the locations and relationships among different facilities. When a user clicks on the map, it displays all power plants located within 500 km of the click point. Within this area, users can select different facilities to view their name, fuel source(s), and the distance from the click event.</p>
+    </footer>
+
+    <script src="power-plants.js"></script>
+    <script>
+
+    var map = L.map('map', {
+          center: [36,-94],
+          zoom: 4,
+      });
+      
+    var tiles = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+          subdomains: 'abcd',
+          maxZoom: 19
+      });  
+      
+      tiles.addTo(map);
+        
+    var commonStyles = {
+        weight: 1,
+        stroke: 1,
+        fillOpacity: .75
+    }
+
+    var coalLayer = L.geoJson(plants, {
+        pointToLayer: function(feature,latlng) {
+        return L.circleMarker(latlng, commonStyles);
+    },
+        
+    filter: function(feature) {
+        if(feature.properties.fuel_source.Coal) {
+            return feature;
+        }
+    },
+    style: function(feature) {
+        return {
+            color: '#dc143c',
+            fillColor: '#a9a9a9',
+            radius: getRadius(feature.properties.fuel_source.Coal)
+        } 
+    } 
+}).addTo(map);   
+    
+    var solarLayer = L.geoJson(plants, {
+        pointToLayer: function(feature,latlng) {
+        return L.circleMarker(latlng, commonStyles);
+    },
+    
+    filter: function(feature) {
+        if(feature.properties.fuel_source.Solar) {
+            return feature;
+        }
+    },
+    style: function(feature) {
+        return {
+            color: '#ff8c00',
+            fillColor: '#ffff00',
+            radius: getRadius(feature.properties.fuel_source.Solar)
+        } 
+    } 
+}).addTo(map);
+
+    var hydroLayer = L.geoJson(plants, {
+        pointToLayer: function(feature,latlng) {
+        return L.circleMarker(latlng, commonStyles);
+    },
+        
+    filter: function(feature) {
+        if(feature.properties.fuel_source.Hydro) {
+            return feature;
+        }
+    },
+    style: function(feature) {
+        return {
+            color: '#0000cd',
+            fillColor: '#a6cee3',
+            radius: getRadius(feature.properties.fuel_source.Hydro)
+        }
+    }
+}).addTo(map);
+        
+           function getRadius(area) {
+                var radius = Math.sqrt(area/Math.PI);
+                return radius * .6;  
+    }
+     
+    var powerLayers = {
+        "<b style = 'color:#a9a9a9' >Coal</b>": coalLayer,
+        "<b style = 'color:#ff8c00' >Solar</b>": solarLayer,
+        "<b style = 'color:#a6cee3' >Hydro</b>": hydroLayer
+    }
+    
+    L.control.layers(null, powerLayers).addTo(map);
+     
+    map.on('click', function(e) {
+    coalLayer.eachLayer(function(layer) {
+    var distance = e.latlng.distanceTo(layer.getLatLng())/1000;
+       
+            if(distance > 500) {
+            layer.setStyle({
+                stroke: false,
+                fill: false
+            });  
+        } else {
+            layer.setStyle({
+                stroke: true,
+                fill: true  
+            });
+        
+            for(var source in layer.feature.properties.fuel_source); 
+            
+            layer.bindPopup("<b>" + layer.feature.properties.plant_name + "</b><br>" + "<b>" + "Fuel Source: " + "</b>" + source + "<br>" + "<b>" + "Distance from Click: " + "</b>" + distance.toLocaleString() + " km");
+        } 
+    });
+     
+    solarLayer.eachLayer(function(layer) {
+    var distance = e.latlng.distanceTo(layer.getLatLng())/1000;
+
+        if(distance > 500) {
+            layer.setStyle({
+                stroke: false,
+                fill: false
+            });  
+        } else {
+            layer.setStyle({
+                stroke: true,
+                fill: true  
+            }); 
+            
+            for(var source in layer.feature.properties.fuel_source);
+            
+            layer.bindPopup("<b>" + layer.feature.properties.plant_name + "</b><br>" + "<b>" + "Fuel Source: " + "</b>" + source + "<br>" + "<b>" + "Distance from Click: " + "</b>" + distance.toLocaleString() + " km");
+        } 
+    });
+        
+        hydroLayer.eachLayer(function(layer) {
+    var distance = e.latlng.distanceTo(layer.getLatLng())/1000;
+
+        if(distance > 500) {
+            layer.setStyle({
+                stroke: false,
+                fill: false
+            });  
+        } else {
+            layer.setStyle({
+                stroke: true,
+                fill: true  
+            });
+            
+            for(var source in layer.feature.properties.fuel_source);
+            
+            layer.bindPopup("<b>" + layer.feature.properties.plant_name + "</b><br>" + "<b>" + "Fuel Source: " + "</b>" + source + "<br>" + "<b>" + "Distance from Click: " + "</b>" + distance.toLocaleString() + " km");
+        } 
+    });
+});
+        
+    </script>
+    
+</body>
+
+</html>
